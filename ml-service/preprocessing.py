@@ -42,9 +42,9 @@ def load_and_preprocess():
     # ── Impute missing categorical values with Mode ──
     print("  Imputing missing values with mode...")
     for col in df.columns:
-        if df[col].dtype == "object" and df[col].isnull().sum() > 0:
+        if not pd.api.types.is_numeric_dtype(df[col]) and df[col].isnull().sum() > 0:
             mode_val = df[col].mode()[0]
-            df[col].fillna(mode_val, inplace=True)
+            df[col] = df[col].fillna(mode_val)
 
     # ── Extract Hour_of_Day from Time ──
     print("  Extracting Hour_of_Day from Time column...")
@@ -88,9 +88,9 @@ def load_and_preprocess():
     print("  Label encoding categorical features...")
     label_encoders = {}
     for col in df.columns:
-        if df[col].dtype == "object":
+        if not pd.api.types.is_numeric_dtype(df[col]):
             le = LabelEncoder()
-            df[col] = le.fit_transform(df[col])
+            df[col] = le.fit_transform(df[col].astype(str))
             label_encoders[col] = le
 
     X = df
