@@ -2,11 +2,11 @@
 FROM node:20-slim AS next-builder
 WORKDIR /app
 COPY package*.json ./
-# Install all dependencies including devDependencies needed to build Next.js
-RUN npm ci
+# Install ALL deps including devDependencies (tailwindcss, postcss, etc. needed for build)
+RUN npm install --include=dev --legacy-peer-deps
 COPY . .
-# Build Next.js (generates .next/standalone and copies static/public via postbuild script)
-RUN npm run build
+# Increase Node heap to handle large Next.js builds; build the app
+RUN NODE_OPTIONS="--max-old-space-size=4096" npm run build
 
 # ── Stage 2: Train ML Models ──────────────────────────────────────────────────
 FROM python:3.11-slim AS ml-builder
