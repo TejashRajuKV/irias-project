@@ -9,10 +9,18 @@ RUN pip install --no-cache-dir -r ml-service/requirements.txt
 FROM node:20-slim AS builder
 
 WORKDIR /app
-COPY package.json package-lock.json* ./
-RUN npm ci
 
+# Copy package files
+COPY package.json package-lock.json* ./
+RUN npm ci --prefer-offline
+
+# Copy all source files
 COPY . .
+
+# Increase Node memory for build (fixes OOM errors on Render/Cloud Run)
+ENV NODE_OPTIONS="--max-old-space-size=4096"
+ENV NEXT_TELEMETRY_DISABLED=1
+
 RUN npm run build
 
 # ── Stage 3: Production image ─────────────────────────────────────────────────
@@ -30,11 +38,12 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=8080
 ENV HOSTNAME=0.0.0.0
+ENV NEXT_TELEMETRY_DISABLED=1
 
 # Copy Python packages from python-deps stage
 COPY --from=python-deps /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
 
-# Make python3 available
+# Symlink python3
 RUN ln -sf /usr/bin/python3 /usr/bin/python3
 
 # Copy Next.js standalone output
