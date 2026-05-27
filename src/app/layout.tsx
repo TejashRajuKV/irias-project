@@ -3,6 +3,7 @@ import { Playfair_Display, Inter } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/frontend/components/ui/toaster";
 import { Navbar } from "@/frontend/components/Navbar";
+import { Suspense } from "react";
 
 const playfair = Playfair_Display({
   variable: "--font-playfair",
@@ -49,7 +50,9 @@ export default function RootLayout({
       <body
         className={`${playfair.variable} ${inter.variable} antialiased bg-background text-foreground min-h-screen font-sans`}
       >
-        <Navbar />
+        <Suspense fallback={<div className="h-[67px] border-b border-black/10 bg-background" />}>
+          <Navbar />
+        </Suspense>
         <div className="min-h-[calc(100vh-64px)]">{children}</div>
         <Toaster />
       </body>

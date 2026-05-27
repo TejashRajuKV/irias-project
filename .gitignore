@@ -64,6 +64,13 @@ venv/
 
 # ML model artifacts (too large for Git — regenerate with `python train_models.py`)
 ml-service/models/*.pkl
+ml-service/models/*.json
+
+# ML scratch/debug files
+ml-service/scratch/
+
+# Generated output files
+outputs/
 
 # SQLite
 *.db

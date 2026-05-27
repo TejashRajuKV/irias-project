@@ -2,112 +2,101 @@ import { NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
 
+interface RawClassMetrics {
+  accuracy: number;
+  precision_weighted: number;
+  recall_weighted: number;
+  f1_weighted: number;
+  approach: string;
+  roc_auc_ovr?: number;
+  confusion_matrix?: number[][];
+  best_params?: Record<string, unknown>;
+}
+
+interface RawRegMetrics {
+  mae: number;
+  mse: number;
+  rmse: number;
+  r2: number;
+  approach: string;
+  best_params?: Record<string, unknown>;
+}
+
+function readJsonSafe(filePath: string): Record<string, unknown> {
+  try {
+    return JSON.parse(fs.readFileSync(filePath, "utf-8"));
+  } catch {
+    return {};
+  }
+}
+
 export async function GET() {
   try {
-    const classMetrics: Record<string, unknown> = JSON.parse(
-      fs.readFileSync(
-        path.join(
-          process.cwd(),
-          "ml-service/models/classification_metrics.json"
-        ),
-        "utf-8"
-      )
-    );
-    let classMetricsPca: Record<string, unknown> = {};
-    try {
-      classMetricsPca = JSON.parse(
-        fs.readFileSync(
-          path.join(
-            process.cwd(),
-            "ml-service/models/classification_metrics_pca.json"
-          ),
-          "utf-8"
-        )
-      );
-    } catch (e) {
-      // Ignore if PCA doesn't exist
-    }
+    const classMetrics = readJsonSafe(
+      path.join(process.cwd(), "ml-service/models/classification_metrics.json")
+    ) as Record<string, RawClassMetrics>;
 
-    const regMetrics: Record<string, unknown> = JSON.parse(
-      fs.readFileSync(
-        path.join(process.cwd(), "ml-service/models/regression_metrics.json"),
-        "utf-8"
-      )
-    );
-    let regMetricsPca: Record<string, unknown> = {};
-    try {
-      regMetricsPca = JSON.parse(
-        fs.readFileSync(
-          path.join(
-            process.cwd(),
-            "ml-service/models/regression_metrics_pca.json"
-          ),
-          "utf-8"
-        )
-      );
-    } catch (e) {
-      // Ignore if PCA doesn't exist
-    }
+    const classMetricsPca = readJsonSafe(
+      path.join(process.cwd(), "ml-service/models/classification_metrics_pca.json")
+    ) as Record<string, RawClassMetrics>;
 
-    // Transform classification models into array
+    const regMetrics = readJsonSafe(
+      path.join(process.cwd(), "ml-service/models/regression_metrics.json")
+    ) as Record<string, RawRegMetrics>;
+
+    const regMetricsPca = readJsonSafe(
+      path.join(process.cwd(), "ml-service/models/regression_metrics_pca.json")
+    ) as Record<string, RawRegMetrics>;
+
+    const auxiliaryMetrics = readJsonSafe(
+      path.join(process.cwd(), "ml-service/models/auxiliary_metrics.json")
+    );
+
     const classificationModels = [
-      ...Object.entries(classMetrics).map(([name, metrics]: [string, any]) => ({
+      ...Object.entries(classMetrics).map(([name, m]) => ({
         name,
-        accuracy: metrics.accuracy as number,
-        precision: metrics.precision_weighted as number,
-        recall: metrics.recall_weighted as number,
-        f1Score: metrics.f1_weighted as number,
-        approach: metrics.approach as string,
-        rocAuc: (metrics.roc_auc_ovr as number) || null,
-        confusionMatrix: (metrics.confusion_matrix as number[][]) || [],
-        bestParams: (metrics.best_params as Record<string, unknown>) || null,
+        accuracy: m.accuracy,
+        precision: m.precision_weighted,
+        recall: m.recall_weighted,
+        f1Score: m.f1_weighted,
+        approach: m.approach,
+        rocAuc: m.roc_auc_ovr ?? null,
+        confusionMatrix: m.confusion_matrix ?? [],
+        bestParams: m.best_params ?? null,
       })),
-      ...Object.entries(classMetricsPca).map(([name, metrics]: [string, any]) => ({
+      ...Object.entries(classMetricsPca).map(([name, m]) => ({
         name: `${name} (PCA)`,
-        accuracy: metrics.accuracy as number,
-        precision: metrics.precision_weighted as number,
-        recall: metrics.recall_weighted as number,
-        f1Score: metrics.f1_weighted as number,
-        approach: metrics.approach as string,
-        rocAuc: (metrics.roc_auc_ovr as number) || null,
-        confusionMatrix: (metrics.confusion_matrix as number[][]) || [],
-        bestParams: (metrics.best_params as Record<string, unknown>) || null,
+        accuracy: m.accuracy,
+        precision: m.precision_weighted,
+        recall: m.recall_weighted,
+        f1Score: m.f1_weighted,
+        approach: m.approach,
+        rocAuc: m.roc_auc_ovr ?? null,
+        confusionMatrix: m.confusion_matrix ?? [],
+        bestParams: m.best_params ?? null,
       })),
     ];
 
-    // Transform regression models into array
     const regressionModels = [
-      ...Object.entries(regMetrics).map(([name, metrics]: [string, any]) => ({
+      ...Object.entries(regMetrics).map(([name, m]) => ({
         name,
-        mae: metrics.mae as number,
-        mse: metrics.mse as number,
-        rmse: metrics.rmse as number,
-        r2: metrics.r2 as number,
-        approach: metrics.approach as string,
-        bestParams: (metrics.best_params as Record<string, unknown>) || null,
+        mae: m.mae,
+        mse: m.mse,
+        rmse: m.rmse,
+        r2: m.r2,
+        approach: m.approach,
+        bestParams: m.best_params ?? null,
       })),
-      ...Object.entries(regMetricsPca).map(([name, metrics]: [string, any]) => ({
+      ...Object.entries(regMetricsPca).map(([name, m]) => ({
         name: `${name} (PCA)`,
-        mae: metrics.mae as number,
-        mse: metrics.mse as number,
-        rmse: metrics.rmse as number,
-        r2: metrics.r2 as number,
-        approach: metrics.approach as string,
-        bestParams: (metrics.best_params as Record<string, unknown>) || null,
+        mae: m.mae,
+        mse: m.mse,
+        rmse: m.rmse,
+        r2: m.r2,
+        approach: m.approach,
+        bestParams: m.best_params ?? null,
       })),
     ];
-
-    let auxiliaryMetrics: Record<string, any> = {};
-    try {
-      auxiliaryMetrics = JSON.parse(
-        fs.readFileSync(
-          path.join(process.cwd(), "ml-service/models/auxiliary_metrics.json"),
-          "utf-8"
-        )
-      );
-    } catch (e) {
-      // Ignore if auxiliary doesn't exist
-    }
 
     return NextResponse.json({
       classification: classificationModels,

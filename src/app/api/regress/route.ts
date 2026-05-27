@@ -33,13 +33,16 @@ result = regress(features)
 print(json.dumps(result))
 `;
 
-    const result = execFileSync("python", ["-c", pythonScript], {
-      timeout: 30000,
-      encoding: "utf-8",
-    });
-
-    // Clean up
-    fs.unlinkSync(tmpFile);
+    const pythonCmd = process.platform === "win32" ? "python" : "python3";
+    let result: string;
+    try {
+      result = execFileSync(pythonCmd, ["-c", pythonScript], {
+        timeout: 30000,
+        encoding: "utf-8",
+      });
+    } finally {
+      try { fs.unlinkSync(tmpFile); } catch {}
+    }
 
     const prediction = JSON.parse(result.trim());
 

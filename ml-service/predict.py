@@ -85,7 +85,7 @@ def classify(features_dict: dict) -> dict:
         y_proba = classifier.predict_proba(X_scaled)[0]
         class_labels = target_encoder.inverse_transform(np.arange(len(y_proba)))
         probabilities = {str(label): round(float(prob), 4) for label, prob in zip(class_labels, y_proba)}
-        confidence = round(float(y_proba[y_pred_encoded]), 4)
+        confidence = round(float(max(y_proba)), 4)
     except Exception:
         probabilities = None
         confidence = None
@@ -190,29 +190,6 @@ def predict_auxiliary(features_dict: dict) -> dict:
             }
         except Exception as e:
             aux_results[task_name] = {"error": str(e)}
-
-    # Driver Clustering Clustering
-    driver_cluster_path = os.path.join(MODEL_DIR, "best_aux_driver_cluster.pkl")
-    driver_scaler_path = os.path.join(MODEL_DIR, "scaler_aux_driver_cluster.pkl")
-    if os.path.exists(driver_cluster_path) and os.path.exists(driver_scaler_path):
-        try:
-            dc_model = joblib.load(driver_cluster_path)
-            dc_scaler = joblib.load(driver_scaler_path)
-            
-            driver_cols = ['Age_band_of_driver', 'Sex_of_driver', 'Driving_experience']
-            X_driver = X_df_base[driver_cols].copy()
-            X_driver_scaled = dc_scaler.transform(X_driver)
-            
-            cluster_pred = dc_model.predict(X_driver_scaled)[0]
-            
-            risk_labels = {0: "Low Risk Profile", 1: "Medium Risk Profile", 2: "High Risk Profile"}
-            
-            aux_results["Driver Profile Risk"] = {
-                "prediction": risk_labels.get(int(cluster_pred), f"Cluster {cluster_pred}"),
-                "confidence": None
-            }
-        except Exception as e:
-            aux_results["Driver Profile Risk"] = {"error": str(e)}
 
     return aux_results
 
